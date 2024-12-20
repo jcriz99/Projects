@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Personal Portfolio of [Your Name]" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>[Your Name]'s Portfolio</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <nav>
+            <h1>[Your Name]</h1>
+            <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-text">
+            <h2>Aspiring Software Developer</h2>
+            <p>Welcome to my portfolio website! Here you’ll find my projects, a bit about me, and how to get in touch.</p>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <h2>About Me</h2>
+        <p>
+            I recently graduated with an Associate's degree in Software Development. I enjoy
+            creating functional, user-friendly web applications, and I’m always looking to expand
+            my skill set. Currently, I'm building projects that highlight my abilities in front-end
+            development, basic backend logic, and working with APIs.
+        </p>
+    </section>
+
+    <section id="projects" class="projects">
+        <h2>Projects</h2>
+        
+        <!-- Example Project 1 -->
+        <div class="project">
+            <h3>To-Do List App</h3>
+            <p>A simple front-end application that lets you add, complete, and remove tasks. Built with HTML, CSS, and JavaScript.</p>
+            <div class="links">
+                <a href="https://github.com/yourusername/todo-list-app" target="_blank">View Code</a> | 
+                <a href="https://yourusername.github.io/todo-list-app" target="_blank">Live Demo</a>
+            </div>
+        </div>
+
+        <!-- Example Project 2 -->
+        <div class="project">
+            <h3>Weather Fetch App</h3>
+            <p>A small web app that fetches and displays current weather conditions from a public API. Built with HTML, CSS, and JS (fetch API).</p>
+            <div class="links">
+                <a href="https://github.com/yourusername/weather-app" target="_blank">View Code</a> | 
+                <a href="https://yourusername.github.io/weather-app" target="_blank">Live Demo</a>
+            </div>
+        </div>
+
+        <!-- Example Project 3 -->
+        <div class="project">
+            <h3>Note-Taking CLI (Node.js)</h3>
+            <p>A simple Node.js command-line application to add, list, and remove notes stored in a JSON file.</p>
+            <div class="links">
+                <a href="https://github.com/yourusername/note-cli" target="_blank">View Code</a>
+                <!-- No live demo for CLI apps, just code -->
+            </div>
+        </div>
+        
+        <!-- Add more projects as needed -->
+        
+    </section>
+
+    <section id="contact" class="contact">
+        <h2>Contact</h2>
+        <p>If you'd like to get in touch, feel free to email me or connect on LinkedIn.</p>
+        <p>Email: <a href="mailto:youremail@example.com">youremail@example.com</a></p>
+        <p>LinkedIn: <a href="https://www.linkedin.com/in/yourprofile" target="_blank">Your LinkedIn Profile</a></p>
+    </section>
+
+    <footer>
+        <p>&copy; <span id="year"></span> [Your Name]. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // Dynamically update footer year
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
