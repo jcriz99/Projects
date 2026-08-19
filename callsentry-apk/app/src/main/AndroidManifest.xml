@@ -1,8 +1,41 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
- <uses-permission android:name="android.permission.INTERNET"/>
- <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="CallSentry" android:allowBackup="false" android:usesCleartextTraffic="false">
-  <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
-  <service android:name=".ScreeningService" android:permission="android.permission.BIND_SCREENING_SERVICE" android:exported="true"><intent-filter><action android:name="android.telecom.CallScreeningService"/></intent-filter></service>
-  <service android:name=".SyncJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false"/>
- </application>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <application
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:label="CallSentry"
+        android:icon="@drawable/callsentry_icon"
+        android:roundIcon="@drawable/callsentry_icon"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false">
+
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".CallerIdActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:theme="@style/CallerIdTheme"/>
+
+        <service
+            android:name=".ScreeningService"
+            android:permission="android.permission.BIND_SCREENING_SERVICE"
+            android:exported="true">
+            <intent-filter><action android:name="android.telecom.CallScreeningService"/></intent-filter>
+        </service>
+
+        <service android:name=".SyncJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false"/>
+
+        <receiver android:name=".BootReceiver" android:enabled="true" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter>
+        </receiver>
+    </application>
 </manifest>
