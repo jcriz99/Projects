@@ -21,6 +21,7 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
     private TextView status, stats, lookupResult;
+    private Switch protectionToggle;
     private ScamDb db;
 
     @Override public void onCreate(Bundle b) {
@@ -46,7 +47,22 @@ public class MainActivity extends Activity {
         TextView sub = t("Scam blocking + caller identification", 16, Color.rgb(160, 183, 213)); sub.setGravity(Gravity.CENTER_HORIZONTAL); l.addView(sub);
 
         status = t("", 18, Color.WHITE); status.setPadding(0, dp(22), 0, dp(10)); l.addView(status);
-        Button enable = button("Enable CallSentry screening"); enable.setOnClickListener(v -> enableRole()); l.addView(enable);
+
+        protectionToggle = new Switch(this);
+        protectionToggle.setText("CallSentry protection");
+        protectionToggle.setTextColor(Color.WHITE);
+        protectionToggle.setTextSize(18);
+        protectionToggle.setPadding(0, dp(8), 0, dp(8));
+        protectionToggle.setChecked(ProtectionState.enabled(this));
+        protectionToggle.setOnCheckedChangeListener((button, checked) -> {
+            ProtectionState.setEnabled(this, checked);
+            if (checked && !NotificationHelper.roleHeld(this)) enableRole();
+            refresh(checked ? "Protection turned on" : "Protection turned off");
+        });
+        l.addView(protectionToggle);
+        l.addView(t("Turn this OFF any time to pause CallSentry without uninstalling it. While off, every call passes through untouched: no blocking, scam alerts, caller-ID card, or caller-name lookup is performed. Turn it back on to resume protection.", 14, Color.rgb(166, 185, 210)));
+
+        Button enable = button("Enable / reselect CallSentry as screening app"); enable.setOnClickListener(v -> enableRole()); l.addView(enable);
         stats = t("", 15, Color.rgb(190, 204, 224)); l.addView(stats);
 
         section(l, "Caller identification");
@@ -68,13 +84,16 @@ public class MainActivity extends Activity {
         });
 
         section(l, "Scam protection");
-        l.addView(t("Known high-risk calls are rejected before they ring. You will receive a CallSentry alert showing the number and why it was blocked. Calls with 1–2 recent FTC complaints are labeled as possible spam but still allowed; 3+ recent complaints are blocked. A failed carrier verification plus an FTC complaint is also blocked.", 14, Color.rgb(190, 204, 224)));
+        l.addView(t("Known high-risk calls are rejected before they ring. You receive a CallSentry alert showing the number and why it was blocked. Calls with 1–2 recent FTC complaints are labeled as possible spam but still allowed; 3+ recent complaints are blocked. A failed carrier verification plus an FTC complaint is also blocked.", 14, Color.rgb(190, 204, 224)));
         Button sync = button("Refresh FTC scam database now"); sync.setOnClickListener(v -> new Thread(() -> {
             int n = FtcSync.sync(this, 30); runOnUiThread(() -> refresh("Refresh complete: " + n + " reports imported"));
         }).start()); l.addView(sync);
 
         section(l, "Status notification");
-        l.addView(t("When CallSentry is the active screening app, an ongoing notification stays in your notification tray so you can see that protection is enabled.", 14, Color.rgb(190, 204, 224)));
+        l.addView(t("The ongoing CallSentry notification appears only while protection is ON and CallSentry is Android's selected screening app. Turning protection OFF removes it immediately.", 14, Color.rgb(190, 204, 224)));
+
+        section(l, "Android screening provider");
+        l.addView(t("The master switch above pauses all CallSentry processing instantly. Android may still list CallSentry as the selected caller-ID/spam provider. If you want Samsung or another app to become the provider instead, use the system settings below.", 13, Color.rgb(150, 169, 194)));
         Button settings = button("Android caller ID / spam settings"); settings.setOnClickListener(v -> {
             try { startActivity(new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)); } catch (Exception ignored) { }
         }); l.addView(settings);
@@ -97,13 +116,32 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override protected void onResume() { super.onResume(); refresh(""); NotificationHelper.syncProtectionState(this); }
-    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) { super.onActivityResult(requestCode, resultCode, data); if (requestCode == 42) { refresh(""); NotificationHelper.syncProtectionState(this); } }
-    @Override public void onRequestPermissionsResult(int req, String[] perms, int[] results) { super.onRequestPermissionsResult(req, perms, results); if (req == 77) NotificationHelper.syncProtectionState(this); }
+    @Override protected void onResume() {
+        super.onResume();
+        if (protectionToggle != null && protectionToggle.isChecked() != ProtectionState.enabled(this)) protectionToggle.setChecked(ProtectionState.enabled(this));
+        refresh("");
+        NotificationHelper.syncProtectionState(this);
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 42) { refresh(""); NotificationHelper.syncProtectionState(this); }
+    }
+
+    @Override public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
+        super.onRequestPermissionsResult(req, perms, results);
+        if (req == 77) NotificationHelper.syncProtectionState(this);
+    }
 
     private void refresh(String msg) {
         boolean held = NotificationHelper.roleHeld(this);
-        status.setText((held ? "✓ Protection is ACTIVE" : "CallSentry is not the active screening app") + (msg.isEmpty() ? "" : "\n" + msg));
+        boolean enabled = ProtectionState.enabled(this);
+        String state;
+        if (held && enabled) state = "✓ Protection is ACTIVE";
+        else if (held) state = "⏸ Protection is OFF — calls pass through untouched";
+        else if (enabled) state = "Protection is ON, but CallSentry is not Android's active screening app";
+        else state = "⏸ Protection is OFF";
+        status.setText(state + (msg.isEmpty() ? "" : "\n" + msg));
         stats.setText("Local FTC reputation records: " + db.totalReports() + "\nLast refresh: " + db.lastSyncText() + "\nCaller-name lookup: " + (CnamLookup.onlineEnabled(this) ? "Carrier + FreeCNAM" : "Carrier only"));
     }
 }
