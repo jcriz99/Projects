@@ -40,11 +40,19 @@ class NotificationHelper {
     static void syncProtectionState(Context c) {
         createChannels(c);
         NotificationManager nm = c.getSystemService(NotificationManager.class);
-        if (!roleHeld(c)) { nm.cancel(ID_ACTIVE); return; }
+        if (!roleHeld(c) || !ProtectionState.enabled(c)) {
+            nm.cancel(ID_ACTIVE);
+            return;
+        }
         showProtection(c);
     }
 
     static void showProtection(Context c) {
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        if (!ProtectionState.enabled(c) || !roleHeld(c)) {
+            nm.cancel(ID_ACTIVE);
+            return;
+        }
         if (!canNotify(c)) return;
         createChannels(c);
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -55,11 +63,11 @@ class NotificationHelper {
                 .setContentText("Screening unknown calls for scams and caller identity")
                 .setContentIntent(pi).setOngoing(true).setOnlyAlertOnce(true)
                 .setCategory(Notification.CATEGORY_SERVICE).setVisibility(Notification.VISIBILITY_PUBLIC);
-        c.getSystemService(NotificationManager.class).notify(ID_ACTIVE, b.build());
+        nm.notify(ID_ACTIVE, b.build());
     }
 
     static void showScamBlocked(Context c, String number, String name, int reports, boolean verificationFailed) {
-        if (!canNotify(c)) return;
+        if (!ProtectionState.enabled(c) || !canNotify(c)) return;
         createChannels(c);
         String who = CnamLookup.meaningful(name) ? name.trim() : format(number);
         StringBuilder detail = new StringBuilder();
