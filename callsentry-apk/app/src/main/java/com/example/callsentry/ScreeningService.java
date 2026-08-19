@@ -8,6 +8,21 @@ import android.telecom.Connection;
 
 public class ScreeningService extends CallScreeningService {
     @Override public void onScreenCall(Call.Details d) {
+        // Master pause: remain a valid Android screening provider, but make no
+        // scam/caller-ID decision and do not show any CallSentry UI or alerts.
+        if (!ProtectionState.enabled(this)) {
+            CallResponse pass = new CallResponse.Builder()
+                    .setDisallowCall(false)
+                    .setRejectCall(false)
+                    .setSilenceCall(false)
+                    .setSkipCallLog(false)
+                    .setSkipNotification(false)
+                    .build();
+            respondToCall(d, pass);
+            NotificationHelper.syncProtectionState(this);
+            return;
+        }
+
         String raw = d.getHandle() == null ? "" : d.getHandle().getSchemeSpecificPart();
         String n = ScamDb.norm(raw);
         int verify = Connection.VERIFICATION_STATUS_NOT_VERIFIED;
