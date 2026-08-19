@@ -1,0 +1,3 @@
+package com.example.callsentry;
+import android.app.job.*;import android.content.*;
+public class SyncJob extends JobService{static void schedule(Context c){JobScheduler s=(JobScheduler)c.getSystemService(Context.JOB_SCHEDULER_SERVICE);JobInfo i=new JobInfo.Builder(0xCA11,new ComponentName(c,SyncJob.class)).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPeriodic(24L*60*60*1000).setPersisted(false).build();s.schedule(i);}public boolean onStartJob(JobParameters p){new Thread(()->{FtcSync.sync(this,14);jobFinished(p,false);}).start();return true;}public boolean onStopJob(JobParameters p){return true;}}
