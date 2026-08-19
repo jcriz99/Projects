@@ -1,10 +1,77 @@
 package com.example.callsentry;
-import android.content.*;import android.database.*;import android.database.sqlite.*;
-class ScamDb extends SQLiteOpenHelper{ScamDb(Context c){super(c,"callsentry.db",null,1);}public void onCreate(SQLiteDatabase d){d.execSQL("CREATE TABLE reports(number TEXT, day INTEGER, UNIQUE(number,day))");d.execSQL("CREATE INDEX idx_reports_num ON reports(number)");d.execSQL("CREATE TABLE meta(k TEXT PRIMARY KEY,v TEXT)");d.execSQL("CREATE TABLE events(ts INTEGER,number TEXT,action TEXT,reports INTEGER,verify_failed INTEGER)");}public void onUpgrade(SQLiteDatabase d,int a,int b){}
- static String norm(String s){if(s==null)return"";String d=s.replaceAll("[^0-9]","");if(d.length()==11&&d.startsWith("1"))d=d.substring(1);return d;}
- void add(String n,long day){n=norm(n);if(n.length()!=10)return;ContentValues v=new ContentValues();v.put("number",n);v.put("day",day);getWritableDatabase().insertWithOnConflict("reports",null,v,SQLiteDatabase.CONFLICT_IGNORE);}
- int recentCount(String n,int days){long min=(System.currentTimeMillis()/86400000L)-days;try(Cursor c=getReadableDatabase().rawQuery("SELECT count(*) FROM reports WHERE number=? AND day>=?",new String[]{norm(n),Long.toString(min)})){return c.moveToFirst()?c.getInt(0):0;}}
- int totalReports(){try(Cursor c=getReadableDatabase().rawQuery("SELECT count(*) FROM reports",null)){return c.moveToFirst()?c.getInt(0):0;}}
- void meta(String k,String v){ContentValues x=new ContentValues();x.put("k",k);x.put("v",v);getWritableDatabase().insertWithOnConflict("meta",null,x,SQLiteDatabase.CONFLICT_REPLACE);}String lastSyncText(){try(Cursor c=getReadableDatabase().rawQuery("SELECT v FROM meta WHERE k='last_sync'",null)){if(c.moveToFirst())return c.getString(0);}return"Never";}
- void log(String n,String a,int r,boolean f){ContentValues v=new ContentValues();v.put("ts",System.currentTimeMillis());v.put("number",n);v.put("action",a);v.put("reports",r);v.put("verify_failed",f?1:0);getWritableDatabase().insert("events",null,v);}
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+class ScamDb extends SQLiteOpenHelper {
+    private static final int DB_VERSION = 2;
+    ScamDb(Context c) { super(c, "callsentry.db", null, DB_VERSION); }
+
+    @Override public void onCreate(SQLiteDatabase d) {
+        d.execSQL("CREATE TABLE reports(number TEXT, day INTEGER, UNIQUE(number,day))");
+        d.execSQL("CREATE INDEX idx_reports_num ON reports(number)");
+        d.execSQL("CREATE TABLE meta(k TEXT PRIMARY KEY,v TEXT)");
+        d.execSQL("CREATE TABLE events(ts INTEGER,number TEXT,action TEXT,reports INTEGER,verify_failed INTEGER)");
+        d.execSQL("CREATE TABLE caller_names(number TEXT PRIMARY KEY,name TEXT,source TEXT,updated INTEGER)");
+    }
+
+    @Override public void onUpgrade(SQLiteDatabase d, int oldVersion, int newVersion) {
+        if (oldVersion < 2) d.execSQL("CREATE TABLE IF NOT EXISTS caller_names(number TEXT PRIMARY KEY,name TEXT,source TEXT,updated INTEGER)");
+    }
+
+    static String norm(String s) {
+        if (s == null) return "";
+        String d = s.replaceAll("[^0-9]", "");
+        if (d.length() == 11 && d.startsWith("1")) d = d.substring(1);
+        return d;
+    }
+
+    void add(String n, long day) {
+        n = norm(n); if (n.length() != 10) return;
+        ContentValues v = new ContentValues(); v.put("number", n); v.put("day", day);
+        getWritableDatabase().insertWithOnConflict("reports", null, v, SQLiteDatabase.CONFLICT_IGNORE);
+    }
+
+    int recentCount(String n, int days) {
+        long min = (System.currentTimeMillis() / 86400000L) - days;
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT count(*) FROM reports WHERE number=? AND day>=?", new String[]{norm(n), Long.toString(min)})) {
+            return c.moveToFirst() ? c.getInt(0) : 0;
+        }
+    }
+
+    int totalReports() {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT count(*) FROM reports", null)) { return c.moveToFirst() ? c.getInt(0) : 0; }
+    }
+
+    void meta(String k, String v) {
+        ContentValues x = new ContentValues(); x.put("k", k); x.put("v", v);
+        getWritableDatabase().insertWithOnConflict("meta", null, x, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    String lastSyncText() {
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT v FROM meta WHERE k='last_sync'", null)) { if (c.moveToFirst()) return c.getString(0); }
+        return "Never";
+    }
+
+    void log(String n, String a, int r, boolean f) {
+        ContentValues v = new ContentValues(); v.put("ts", System.currentTimeMillis()); v.put("number", n); v.put("action", a); v.put("reports", r); v.put("verify_failed", f ? 1 : 0);
+        getWritableDatabase().insert("events", null, v);
+    }
+
+    void saveCallerName(String number, String name, String source) {
+        number = norm(number); if (number.length() != 10 || name == null || name.trim().isEmpty()) return;
+        ContentValues v = new ContentValues(); v.put("number", number); v.put("name", name.trim()); v.put("source", source == null ? "" : source); v.put("updated", System.currentTimeMillis());
+        getWritableDatabase().insertWithOnConflict("caller_names", null, v, SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    CnamLookup.Result cachedCallerName(String number, long maxAgeMs) {
+        number = norm(number);
+        try (Cursor c = getReadableDatabase().rawQuery("SELECT name,source,updated FROM caller_names WHERE number=?", new String[]{number})) {
+            if (c.moveToFirst() && System.currentTimeMillis() - c.getLong(2) <= maxAgeMs) return new CnamLookup.Result(c.getString(0), c.getString(1));
+        }
+        return null;
+    }
 }
